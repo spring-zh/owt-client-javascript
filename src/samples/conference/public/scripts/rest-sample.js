@@ -274,6 +274,16 @@ var getDefaultRoom = function (){
                     channelNum: 2,
                     sampleRate: 48000,
                     codec: "aac"
+                },
+                {
+                    channelNum: 2,
+                    sampleRate: 44100,
+                    codec: "aac"
+                },
+                {
+                    channelNum: 2,
+                    sampleRate: 32000,
+                    codec: "aac"
                 }
             ]
         },
