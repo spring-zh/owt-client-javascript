@@ -36,6 +36,7 @@ const runSocketIOSample = function() {
     let myId;
     let subscriptionForMixedStream;
     let myRoom;
+    var streamOutId;
 
     function getParameterByName(name) {
         name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
@@ -47,6 +48,7 @@ const runSocketIOSample = function() {
 
     var subscribeForward = getParameterByName('forward') === 'true'?true:false;
     var isSelf = getParameterByName('self') === 'false'?false:true;
+
     conference = new Owt.Conference.ConferenceClient();
     function renderVideo(stream){
         let subscirptionForward=null;
@@ -125,9 +127,11 @@ const runSocketIOSample = function() {
         };
         var shareScreen = getParameterByName('screen') || false;
         myRoom = getParameterByName('room');
+        console.log('zsplog myRoom: '+ myRoom);
         var isHttps = (location.protocol === 'https:');
         var mediaUrl = getParameterByName('url');
         var isPublish = getParameterByName('publish');
+        
         createToken(myRoom, 'user', 'presenter', function(response) {
             var token = response;
             conference.join(token).then(resp => {
@@ -146,8 +150,13 @@ const runSocketIOSample = function() {
                         localStream = new Owt.Base.LocalStream(
                             mediaStream, new Owt.Base.StreamSourceInfo(
                                 'mic', 'camera'));
+                        let publishOptions = {
+                            audio: [{ codec : { name: "opus" , clockRate: 48000, channelCount: 2} }],
+                            video: [{ codec : { name: "h264", profile: "CB" } }]
+                        };
+
                         $('.local video').get(0).srcObject = stream;
-                        conference.publish(localStream).then(publication => {
+                        conference.publish(localStream, publishOptions).then(publication => {
                             publicationGlobal = publication;
                             mixStream(myRoom, publication.id, 'common')
                             publication.addEventListener('error', (err) => {
@@ -165,7 +174,7 @@ const runSocketIOSample = function() {
                       if (stream.source.audio === 'mixed' || stream.source.video ===
                         'mixed') {
                         conference.subscribe(stream, {
-                            audio: {codecs:[{name:'opus'}]},
+                            audio: {codecs:[{name:'pcma'}]},
                             video: true
                         }).then((subscription) => {
                             subscriptionForMixedStream = subscription;
@@ -187,6 +196,15 @@ const runSocketIOSample = function() {
                             button.appendTo($('body'));
                         };
                       }
+
+                      //try start stream out
+                      startStreamingOut(myRoom, stream.id,"rtmp://112.74.73.206:1935/live/owt_mix_stream", function(response) {
+                            let streamingOut = JSON.parse(response);
+                            if(streamingOut != undefined){
+                                streamOutId = streamingOut.id;
+                            }
+                            console.log('startStreamingOut:', streamingOut);
+                      });
                     }else if(stream.source.audio !== 'mixed'){
                         subscribeForward && renderVideo(stream);
                     }
@@ -212,8 +230,11 @@ const runSocketIOSample = function() {
             });
         });
     };
+    window.onbeforeunload = function(event){
+        if(streamOutId != this.undefined){
+            stopStreamingOut(myRoom, streamOutId);
+        }
+        conference.leave()
+        publicationGlobal.stop();
+    };
 };
-window.onbeforeunload = function(event){
-    conference.leave()
-    publicationGlobal.stop();
-}

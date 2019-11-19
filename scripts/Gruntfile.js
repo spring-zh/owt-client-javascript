@@ -207,6 +207,7 @@ window.L = L;\n\
       dist_conference:{
          files: {
           'dist/samples/conference/public/index.html': 'src/samples/conference/public/index.html',
+          'dist/samples/conference/public/debug.html': 'src/samples/conference/public/debug.html',
         },
         options: {
         replacements: [
